@@ -1,4 +1,5 @@
-import { isFavourite } from './favourites.js'
+// If you want 5 of something, you can just "repeat" it 5 times instead of writing it out.
+const ratingBalls = '<span class="rating-display-ball"></span>'.repeat(5)
 
 // Pick the first available artwork, with the local Poké Ball as a fallback.
 const getProfileImageURL = (pokemon) => {
@@ -11,10 +12,16 @@ const getProfileImageURL = (pokemon) => {
 // Fetch one Pokémon from PokeAPI and return the HTML for its detail popover.
 const createProfile = async (popoverId, url, pokemonName) => {
   const data = await fetch(url)
+  if (!data.ok) throw new Error(`Pokémon profile request failed (${data.status})`)
   const pokemon = await data.json()
   const imageURL = getProfileImageURL(pokemon)
-
-  const heartIcon = isFavourite(pokemonName) ? 'heart-fill.svg' : 'heart-outline.svg'
+  const scores = [1, 2, 3, 4, 5]
+  const ratingOptions = scores.map(score => `
+          <label class="rating-option">
+            <input type="radio" name="${popoverId}-rating" value="${score}">
+            <img src="pokeball.svg" alt="${score} out of 5">
+          </label>
+  `).join('')
 
   const template = ` 
   <div class="profile">
@@ -23,14 +30,8 @@ const createProfile = async (popoverId, url, pokemonName) => {
     
       <img class="profile-image" src="${imageURL}" onError="this.src='pokeball.svg'"/>
       <div class="characteristics"> 
-        <div class="name-with-favorite">
-          <h2>${pokemon.name}</h2>
-          <button class="favorite" data-pokemon-name="${pokemon.name}" data-pokemon-url="${url}">
-            <img src="${heartIcon}" class="heart" />
-          </button>
-        </div>
+        <h2>${pokemon.name}</h2>
         <h3>
-          <img src="pokeball.svg" style="width:16px;">
           ${pokemon.types.map(t => `<span class="${t.type.name}">${t.type.name}</span>`).join('<i> / </i>')}
         </h3>
 
@@ -46,10 +47,31 @@ const createProfile = async (popoverId, url, pokemonName) => {
           <label>${pokemon.weight / 10}kg</label> 
         </fieldset>
 
-        <p>Abilities: ${pokemon.abilities.map(a => a.ability.name).join(', ')}</p> 
+        <p>Abilities: ${pokemon.abilities.map(a => a.ability.name).join(', ')}</p>
+
+        <details class="rating-editor" data-pokemon-name="${pokemonName}" data-pokemon-url="${url}">
+          <summary class="rating-chip">
+            <span class="rating-chip-label">Rating</span>
+            <span class="rating-chip-value">
+              <span class="rating-chip-average" aria-hidden="true">—</span>
+              <span class="rating-display-slot">
+                <span class="rating-display" aria-hidden="true">${ratingBalls}</span>
+                <span class="rating-spinner" role="status" aria-label="Updating rating"></span>
+              </span>
+              <span class="rating-count" aria-hidden="true">…</span>
+              <span class="rating-announcement" role="status">Loading community rating…</span>
+            </span>
+            <span class="rating-chevron" aria-hidden="true"></span>
+          </summary>
+          <h3 class="rating-heading" id="${popoverId}-rating-heading">My rating</h3>
+          <fieldset class="rating-fields" aria-labelledby="${popoverId}-rating-heading">
+            <div class="rating-options">${ratingOptions}</div>
+            <button type="button" class="rating-clear" hidden>Clear rating</button>
+          </fieldset>
+          <p class="rating-error" role="status"></p>
+        </details>
       </div>
-       
-    </div> 
+    </div>
     <div class="stats">
       ${pokemon.stats.map(stat => `
         <div class="stat">
@@ -58,7 +80,7 @@ const createProfile = async (popoverId, url, pokemonName) => {
         </div>`).join(' ')}
     </div>
   </div>`
-  return DOMPurify.sanitize(template)
+  return DOMPurify.sanitize(template, { ADD_ATTR: ['popovertarget'] })
 }
 
 

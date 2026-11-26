@@ -1,31 +1,17 @@
-import { getFavourites } from './favourites.js';
-import { createListings } from './listings.js';
+export function createNavigation(pokemonTypes) {
+    const nav = document.querySelector('nav')
+    pokemonTypes.forEach(({ name }) => {
+        const button = document.createElement('button')
+        button.className = name
+        button.textContent = name
+        button.setAttribute('aria-controls', name)
+        button.addEventListener('click', () => {
+            nav.querySelectorAll('button').forEach(tab => tab.setAttribute('aria-pressed', tab === button))
+            document.querySelectorAll('main > section')
+                .forEach(section => section.classList.toggle('active', section.id === name))
+        })
+        nav.appendChild(button)
+    })
 
-
-// Each button activates the section with the matching name.
-const createNavItem = (name) => {
-  const button = document.createElement('button')
-  button.className = name
-  button.textContent = name
-  button.addEventListener('click', async () => {
-    if (name === 'favourites') {
-      // Other visitors can change the shared list, so refresh it when the tab opens.
-      const favourites = await getFavourites()
-      createListings(name, favourites)
-    }
-    document.querySelectorAll(`section`)
-      .forEach(el => el.classList.remove('active'))
-    document.querySelectorAll(`section.${name}`)
-      .forEach(el => el.classList.add('active'))
-  })
-  document.querySelector('nav').appendChild(button)
+    nav.firstElementChild?.click()
 }
-
-// Add a tab for each supplied type, followed by the Favourites tab.
-const createNavigation = (pokemonTypes) => {
-  pokemonTypes.forEach(({ name }) => createNavItem(name))
-
-  createNavItem('favourites')
-}
-
-export { createNavigation }

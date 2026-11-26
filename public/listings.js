@@ -1,71 +1,65 @@
-import { createProfile } from './profile.js';
-import { isFavourite } from './favourites.js';
+import { createProfile } from './profile.js'
+import { openRatingEditor, renderListingRating } from './ratings.js'
 
-// Build a Pokémon card with a favourite button and a profile popover.
-const createListing = (pokemon, sectionName) => {
-  // The numeric segment of the PokeAPI URL also identifies the sprite.
-  const id = pokemon.url.split('/').filter(e => Number(e)).pop()
-  // Skip alternate forms with IDs above 10000 because their sprites are often missing.
-  if (id > 10000) return null
-  const iconURL = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
-  // Include the section name because a Pokémon can appear in multiple sections.
-  const popoverId = `${sectionName}-${pokemon.name}`
-  const heartIcon = isFavourite(pokemon.name) ?
-    'heart-fill.svg' : 'heart-outline.svg'
-  const div = document.createElement('div')
-  div.classList.add('listing')
-  div.classList.add(`listing-${pokemon.name}`)
-  let template =
-    `<div class="listing-buttons">
-      <button class="openButton" popoverTarget="${popoverId}" >
-        <img src="${iconURL}" onError="this.src='pokeball.svg'"/>
+function createListing(pokemon, sectionName) {
+    // PokeAPI's detail URL includes the numeric sprite ID. Skip alternate forms with missing sprites.
+    const id = pokemon.url.split('/').filter(segment => Number(segment)).pop()
+    if (id > 10000) return null
+    const iconURL = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+    const popoverId = `${sectionName}-${pokemon.name}`
+    const listing = document.createElement('div')
+    listing.className = 'listing'
+    listing.dataset.pokemonName = pokemon.name
+    const template = `
+      <button class="openButton" popovertarget="${popoverId}">
+        <img src="${iconURL}" alt="">
         <span>${pokemon.name}</span>
-        <img class="open" src="open.svg" />
+        <span class="rating-badge">
+          <span class="rating-badge-average" aria-hidden="true"></span>
+          <img class="rating-badge-icon" src="pokeball.svg" alt="">
+          <span class="rating-count" aria-hidden="true"></span>
+          <span class="rating-announcement"></span>
+        </span>
+        <img class="open" src="open.svg" alt="">
       </button>
-      <button class="favorite" data-pokemon-name="${pokemon.name}" data-pokemon-url="${pokemon.url}">
-        <img src="${heartIcon}" class="heart" />
-      </button>
-    </div>
-    <div popover id="${popoverId}">
-      <div class="profile">
-        <p>Loading...</p>
-      </div>
-    </div>`
-  div.innerHTML = DOMPurify.sanitize(template)
+      <div popover id="${popoverId}">
+        <p>Loading Pokémon…</p>
+      </div>`
+    listing.innerHTML = DOMPurify.sanitize(template, { ADD_ATTR: ['popover', 'popovertarget'] })
+    const sprite = listing.querySelector('.openButton img')
+    sprite.addEventListener('error', () => { sprite.src = 'pokeball.svg' }, { once: true })
+    renderListingRating(listing.querySelector('.rating-badge'), pokemon.name)
 
-  // Fetch the full profile only when someone opens the popover.
-  div.querySelector(`#${popoverId}`)
-    .addEventListener('toggle', async (event) => {
-      if (event.newState == 'open') {
-        let popover = event.target
-        let template = await createProfile(popoverId, pokemon.url, pokemon.name)
-        popover.innerHTML = template
-      }
+    const popover = listing.querySelector('[popover]')
+    let loadingProfile = false
+    popover.addEventListener('toggle', async event => {
+        if (event.newState !== 'open' || loadingProfile) return
+
+        if (!popover.querySelector('.profile')) {
+            loadingProfile = true
+            popover.querySelector('p').textContent = 'Loading Pokémon…'
+            try {
+                popover.innerHTML = await createProfile(popoverId, pokemon.url, pokemon.name)
+            } catch (error) {
+                popover.querySelector('p').textContent = 'Could not load this Pokémon. Reopen the profile to retry.'
+                console.error(error)
+                return
+            } finally {
+                loadingProfile = false
+            }
+        }
+
+        if (popover.matches(':popover-open')) openRatingEditor(popover.querySelector('.rating-editor'))
     })
-
-  return div
+    return listing
 }
 
-
-// Render the Pokémon in a type or favourites section.
-const createListings = (sectionName, pokemonList) => {
-  let section = document.querySelector(`section.${sectionName}`)
-  if (!section) {
-    section = document.createElement('section')
+// Render the Pokémon in one type section.
+export function createListings(sectionName, pokemonList) {
+    const section = document.createElement('section')
+    section.id = sectionName
     section.classList.add(sectionName)
+    const listings = pokemonList.map(pokemon => createListing(pokemon, sectionName)).filter(Boolean)
+    section.append(...listings)
     document.querySelector('main').appendChild(section)
-  }
-  section.innerHTML = ''
-
-  pokemonList.forEach(pokemon => {
-    const div = createListing(pokemon, sectionName)
-    if (div) {
-      section.appendChild(div)
-    }
-  })
-
 }
-
-
-export { createListings, createListing }
-

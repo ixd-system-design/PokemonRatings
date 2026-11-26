@@ -7,7 +7,7 @@
     name="viewport"
     content="width=device-width"
   >
-  <title>Favourite Pokemon</title>
+  <title>Pokémon Ratings</title>
 
   <!-- Pokemon Font via https://www.cdnfonts.com/pokemon-solid.font -->
   <link
@@ -43,20 +43,31 @@
 
 <body>
   <header>
-    <img src="pokeball.svg">
-    <h1>Favourite Pokemon</h1>
+    <div class="header-brand">
+      <h1>Pokémon Ratings</h1>
+      <img src="pokeball.svg" alt="">
+    </div>
+    <div class="visitor" hidden>
+      <span id="visitor-name"></span>
+      <button id="logout" type="button"><span>Logout</span></button>
+    </div>
   </header>
-  <!-- main.js fills these with type buttons and Pokémon listings. -->
-  <nav></nav>
+  <dialog id="name-dialog" aria-labelledby="name-title">
+    <form id="name-form">
+      <h2 id="name-title"><img src="pokeball.svg" alt="">Welcome, Pokéfan</h2>
+      <p style="text-wrap: balance;">To share your ratings with the community, please introduce yourself.</p>
+      <label for="name-input">Your Name:</label>
+      <input id="name-input" type="text" placeholder="Pokéfan" autocomplete="nickname" maxlength="40" required autofocus>
+
+      <div class="dialog-actions">
+        <button type="submit">Continue</button>
+      </div>
+    </form>
+  </dialog>
+  <nav aria-label="Pokémon categories"></nav>
   <main></main>
   <footer>
-    <p>This is a community-curated collection. Any user can add or remove Pokemon. Shared responsibility for moderation.
-    </p>
-
-    <p>This demo illustrates how we can combine Third Party Data from <a href="https://pokeapi.co"></a>PokeAPI with
-      our own backend API. The app allows users to mark Third Party data (pokemon) as 'favourites' by storing them in
-      MongoDB.</p>
-
+    <p>Pokémon data comes from <a href="https://pokeapi.co">PokeAPI</a>. Ratings are saved in MongoDB.</p>
   </footer>
   <script
     src="main.js"
