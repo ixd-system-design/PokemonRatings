@@ -1,6 +1,7 @@
 // This serverless function defines API endpoints to handle requests for Pokémon ratings, 
 // including reading, saving, and deleting ratings.
 
+import mongoose from 'mongoose'
 import { connectDatabase } from '../../server/database.js'
 import { Rating } from '../../server/models.js'
 
@@ -34,9 +35,8 @@ export default async (request) => {
     const validName = name && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)
 
     try {
-        
-         await connectDatabase()
-       
+        await connectDatabase()
+
         // GET /api/ratings?name=...&username=... returns the community summary and the visitor's score for one Pokémon.
         // GET /api/ratings?name=... returns the community summary for one Pokémon.
         // GET /api/ratings returns summaries for all rated Pokémon.    
@@ -118,5 +118,14 @@ export default async (request) => {
         }
         console.error(`${request.method} /api/ratings failed:`, error.name)
         return Response.json({ error: 'The ratings request failed.' }, { status: 500 })
+    } finally {
+
+        // When deployed, Netlify functions can reuse existing MongoDB connections. 
+        // Locally, however, netlify dev makes a new connection each time, which can exceed the Atlas free connection limit. 
+        // To avoid hitting the connection limit, we close the connection after each invocation.
+        if (process.env.NETLIFY_DEV === 'true') {
+            await mongoose.connection.close()
+                .catch(error => console.error('Local MongoDB close failed:', error.name))
+        }
     }
 }

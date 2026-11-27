@@ -10,7 +10,12 @@ export async function connectDatabase() {
         const uri = process.env.MONGODB_URI || process.env.DATABASE_URL
         if (!uri) throw new Error('MONGODB_URI is not configured')
 
-        connectionPromise = mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
+        connectionPromise = mongoose.connect(uri, {
+            serverSelectionTimeoutMS: 5_000,
+            maxPoolSize: 2,
+            minPoolSize: 0,
+            maxIdleTimeMS: 5_000,
+        })
             .finally(() => {
                 connectionPromise = undefined
             })
