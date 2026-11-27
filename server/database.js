@@ -12,7 +12,7 @@ export async function connectDatabase() {
 
         connectionPromise = mongoose.connect(uri, {
             serverSelectionTimeoutMS: 5_000,
-            maxPoolSize: 2,
+            maxPoolSize: 5,
             minPoolSize: 0,
             maxIdleTimeMS: 5_000,
         })
